@@ -8,7 +8,6 @@ editor: visual
 
 ```{r}
 ### Task 4: Make an ICU Status Report
-
 library(googledrive)
 library(tidyverse)
 library(gargle)
@@ -17,60 +16,53 @@ source("sepsis_monitor_functions.R")
 ## Calling drive_deauth() prevents R from trying to authenticate via a browser
 ## This is needed to make the GitHub Action work
 drive_deauth()
-file_link <- "usZYPexIDGTtAc6oFm5UYg0PfXBUPP6W"
+file_link <- "https://drive.google.com/file/d/1mJmX7uYVZnhNU80SLzP9JL2mOjrTPCfM/view?usp=share_link"
 
 
 ## All data up until now
-new_data <- updateData(file_link) #This part is not working, why?
+new_data <- updateData(file_link) #This part is not working, why? Even if there was something in the folder it was not working
 
 ## Include only most recent data
 most_recent_data <- new_data %>%
   group_by(PatientID) %>%
   filter(obsTime == max(obsTime))
 
-## Determine which patients currently have sepsis
-sepsis_patients <- getSepsisPatients(most_recent_data)
+# Determine which patients currently have sepsis
+sepsis_patients <- unique(most_recent_data$PatientID[most_recent_data$SepsisLabel == 1])
 
-## Create table listing physiological data for sepsis patients
+# Create table listing physiological data for sepsis patients
 sepsis_table <- most_recent_data %>%
   filter(PatientID %in% sepsis_patients) %>%
-  select(PatientID, HeartRate, Temperature, RespiratoryRate) %>%
-  rename(`Heart Rate` = HeartRate, `Respiratory Rate` = RespiratoryRate)
+  select(PatientID, HR, Temp, Resp) %>%
+  rename(`Heart Rate` = HR, `Temperature` = Temp, `Respiratory Rate` = Resp)
 
-## Add timestamp to table
-timestamp <- format(Sys.time(), "%Y-%m-%d %H:%M:%S")
-sepsis_table <- bind_rows(list(PatientID = NA, `Heart Rate` = NA, Temperature = NA, `Respiratory Rate` = NA),
-                          sepsis_table)
-sepsis_table[1, ] <- list(PatientID = "Report generated at:", `Heart Rate` = timestamp, Temperature = "", `Respiratory Rate` = "")
+#Timestamp is already in there
 
-## Create plots for patients with sepsis
+# Create plots for patients with sepsis
 for (patient in sepsis_patients) {
   patient_data <- most_recent_data %>%
     filter(PatientID == patient) %>%
-    select(obsTime, HeartRate, Temperature, RespiratoryRate)
+    select(obsTime, HR, Temp, Resp)
 
-## Heart rate plot
-  hr_plot <- ggplot(patient_data, aes(x = obsTime, y = HeartRate)) +
+  # Heart rate plot
+  hr_plot <- ggplot(patient_data, aes(x = obsTime, y = HR)) +
     geom_line() +
     labs(title = paste("Heart Rate for Patient ", patient), x = "Time", y = "Heart Rate")
 
-## Temperature plot
-  temp_plot <- ggplot(patient_data, aes(x = obsTime, y = Temperature)) +
+  # Temperature plot
+  temp_plot <- ggplot(patient_data, aes(x = obsTime, y = Temp)) +
     geom_line() +
     labs(title = paste("Temperature for Patient ", patient), x = "Time", y = "Temperature")
 
-## Respiratory rate plot
-  rr_plot <- ggplot(patient_data, aes(x = obsTime, y = RespiratoryRate)) +
+  # Respiratory rate plot
+  rr_plot <- ggplot(patient_data, aes(x = obsTime, y = Resp)) +
     geom_line() +
     labs(title = paste("Respiratory Rate for Patient ", patient), x = "Time", y = "Respiratory Rate")
 
-## Print plots
+  # Print plots
   print(hr_plot)
   print(temp_plot)
   print(rr_plot)
 }
 
-## Share report with anyone who has the link
-report_file <- drive_upload(html_report, name = "ICU_Status_Report.html", type = "text/html", path = "ICU Status Reports")
-drive_share_anyone(report_file)
 ```

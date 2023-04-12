@@ -10,11 +10,10 @@ output: html_document
 ```{r, include = FALSE, results='hide'}
 #Task 1: Set up
 library(tidyverse)
-library(data.table)
+library(data.table) ## For the fread function
 library(lubridate)
-library(googledrive)
-source("sepsis_monitor_functions.R")
 
+source("sepsis_monitor_functions.R")
 ```
 
 ## Task 2: Speed Reading
@@ -57,45 +56,45 @@ toc()
 | **fread**      | 4.502 seconds  | 9.168 seconds  | 48.911 seconds  |
 | **read_delim** | 18.235 seconds | 36.397 seconds | 180.822 seconds |
 
+
+
+
 ### Task 3: Google Drive
 
 ```{r, results='hide'}
 library(googledrive)
-source("sepsis_monitor_functions.R")
 
-library(googledrive)
-
-# Set the path to the JSON file
-json_file <- "sepsis_client_id.json"
-
-# Authenticate with the Google Drive API using the JSON file
-drive_auth(path = json_file)
-
-# Check that authentication was successful
-drive_about()
-
-# Create the sepsis dataset
 df <- makeSepsisDataset()
 
-# Write the dataset to a temporary CSV file
-write_csv(df, "sepsis_data_temp.csv")
+# We have to write the file to disk first, then upload it
+df %>% write_csv("sepsis_data_temp.csv")
 
-# Upload the file to the specified folder
-sepsis_file <- drive_upload(
-  "sepsis_data_temp.csv",
-  path = "1qTts4tUO6ExMNQ9-ujCZMU0H5ChKt9RJ",
-  type = "text/csv"
-)
+# Uploading happens here; an error in 'validate_drive_id'
+sepsis_file <- drive_put(media = "sepsis_data_temp.csv", 
+          path = "https://drive.google.com/drive/u/1/folders/1TGjrF2g34XF9faZuws8uBSBvrcQxKPUo",
+          name = "sepsis_data.csv")
 
-# Set the file permissions so anyone can download this file
-drive_share_anyone(sepsis_file)
+# Set the file permissions so anyone can download this file.
+sepsis_file %>% drive_share_anyone()
+
+
+
+
+#After help with ChatGPT
+#source("sepsis_monitor_functions.R")
+
+#library(googledrive)
+
+# Set the path to the JSON file
+#json_file <- "sepsis_client_id.json"
+
+# Deauthorize any existing credentials
+#drive_deauth()
+
+# Authenticate with the Google Drive API using the JSON file
+#drive_auth(path = json_file)
+
+# Check that authentication was successful
+#drive_about()
+
 ```
-
-```{r, results='hide'}
-sepsis_file <- drive_upload(media = "sepsis_data_temp.csv",
-                            name = "sepsis_data.csv",
-                            type = "text/csv",
-                            path = "sepsis_data_folder")
-
-```
-
