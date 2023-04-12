@@ -1,0 +1,25 @@
+name: hourly-report
+
+on:
+  schedule:
+    - cron: '0 * * * *'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install R
+      uses: r-lib/actions/setup-r@v1
+      with:
+        r-version: '4.1.0'
+    - name: Install dependencies
+      run: |
+        Rscript -e 'install.packages(c("tidyverse", "data.table", "lubridate", "googledrive", "htmltools", "knitr", "rmarkdown"))'
+    - name: Render ICU Status Report
+      run: Rscript -e 'rmarkdown::render("ICU_Status_Report.Rmd")'
+    - name: Upload report to GitHub
+      uses: actions/upload-artifact@v2
+      with:
+        name: ICU Status Report
+        path: ICU_Status_Report.html
